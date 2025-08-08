@@ -1,0 +1,362 @@
+{
+  "name": "Flux Dev Image Generation (Fal.ai) to Google Drive",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/flux/dev",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.Prompt }}\",\n  \"image_size\": {\n  \"width\": {{ $json.Width }},\n  \"height\": {{ $json.Height }}\n},\n  \"num_inference_steps\": {{ $json.Steps }},\n  \"guidance_scale\": {{ $json.Guidance }},\n  \"num_images\": 1,\n  \"enable_safety_checker\": true\n}",
+        "options": {}
+      },
+      "id": "00f3a7d9-9931-40a4-8eb5-5b9086d6995c",
+      "name": "Fal Flux",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        860,
+        240
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5YHDFzKylfNk4hId",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/flux/requests/{{ $json.request_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "3032a543-2e21-415e-a5bd-d56ea33e4411",
+      "name": "Get Image Result URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1660,
+        220
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.images[0].url }}",
+        "options": {}
+      },
+      "id": "56e13e53-1697-4970-9bea-b75e0e849425",
+      "name": "Download Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1840,
+        220
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "name": "={{ $binary.data.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1R3PSyHXWHlY9DRFdOUEAPEop2fZy-_-K",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1R3PSyHXWHlY9DRFdOUEAPEop2fZy-_-K",
+          "cachedResultName": "Flux Image"
+        },
+        "options": {}
+      },
+      "id": "dd2efd2c-8712-4a77-8786-cccebdec876b",
+      "name": "Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        2020,
+        220
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {},
+      "id": "a598d868-0461-41fc-b6aa-f9998e9d6146",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        380,
+        240
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Set Parameter Here \nset Image Prompt and related settings",
+        "height": 120,
+        "width": 260
+      },
+      "id": "a576d7b6-b2f3-4d53-8e7f-bb6449ff9c64",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        520,
+        120
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "d39e85a8-3ddd-4f10-ba4c-beb86a850e10",
+      "name": "Wait 3 Sec",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        1080,
+        240
+      ],
+      "webhookId": "61a8626c-e281-4d4b-abb0-b9d87d1b4e7c",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/flux/requests/{{ $json.request_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "b27ac2f1-3f14-467e-81c4-af8b8fb37138",
+      "name": "Check Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1280,
+        240
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "299a7c34-dcff-4991-a73f-5b1a84f188ea",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "COMPLETED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7ee45dab-8e31-44de-bbb1-e99a565ee19c",
+      "name": "Completed?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1460,
+        240
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "content": "## Set Drive Folder Here ",
+        "height": 100,
+        "width": 220
+      },
+      "id": "c5036a7d-1879-449f-8ce9-9c1cf2c7426b",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1740,
+        140
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Generic Credential Type\n### Header : Authorization\nKey $FAL_KEY\"\n\nfor example:\nKey 6f2960baxxxxxxxxx",
+        "height": 180,
+        "width": 260
+      },
+      "id": "c8887168-6234-486c-b7cb-cc0752c6341c",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        800,
+        60
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0a033cf-fa2b-4930-93b9-ff9c45fa7c14",
+              "name": "Prompt",
+              "type": "string",
+              "value": "Thai young woman net idol 25 yrs old, walking on the street"
+            },
+            {
+              "id": "2b56185d-5c61-4c17-85f1-53ac4aab2b18",
+              "name": "Width",
+              "type": "number",
+              "value": 1024
+            },
+            {
+              "id": "51eb65c0-ae0a-4ce7-ab00-9d13f05ce1e6",
+              "name": "Height",
+              "type": "number",
+              "value": 768
+            },
+            {
+              "id": "8e89fca7-d380-4876-b973-69caa0394bc5",
+              "name": "Steps",
+              "type": "number",
+              "value": 30
+            },
+            {
+              "id": "875e06b7-352a-4dde-8595-3274e9969c9c",
+              "name": "Guidance",
+              "type": "number",
+              "value": 3.5
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "587043c4-e808-4c3f-910f-60f5eb8aff15",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        620,
+        240
+      ],
+      "typeVersion": 3.4
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Fal Flux": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 Sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Completed?": {
+      "main": [
+        [
+          {
+            "node": "Get Image Result URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 3 Sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 Sec": {
+      "main": [
+        [
+          {
+            "node": "Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Fal Flux",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Status": {
+      "main": [
+        [
+          {
+            "node": "Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image Result URL": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "",
+  "meta": {
+    "templateId": "2644",
+    "instanceId": "a70a0b6d837a52eddab3f5d152c26cd8b8d05813e4f6e6bc4039667124542103"
+  },
+  "tags": []
+}
